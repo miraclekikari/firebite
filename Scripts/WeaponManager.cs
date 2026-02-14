@@ -4,111 +4,125 @@ using System;
 namespace Firebyte
 {
     /// <summary>
-    /// Gestionnaire d'armes pour le système de tir
+    /// Gestionnaire d'armes simplifié compatible Godot 4.2
     /// </summary>
     public partial class WeaponManager : Node
     {
-        // Événements
-        [Signal] public delegate void WeaponFiredEventHandler();
-        [Signal] public delegate void WeaponReloadedEventHandler();
-        [Signal] public delegate void AmmoChangedEventHandler(int currentAmmo, int maxAmmo, int reserveAmmo);
-
-        // Configuration de l'arme
-        [Export] public int MaxAmmo { get; set; } = 30;
-        [Export] public int ReserveAmmo { get; set; } = 90;
-        [Export] public float FireRate { get; set; } = 600.0f; // coups par minute
-        [Export] public float ReloadTime { get; set; } = 2.0f;
-        [Export] public float BaseDamage { get; set; } = 25.0f;
-        [Export] public float Range { get; set; } = 1000.0f;
-
-        // État actuel
-        private int _currentAmmo;
-        private bool _isReloading = false;
-        private bool _canShoot = true;
+        // Références aux composants
+        private AudioStreamPlayer3D _shootSound;
+        private AudioStreamPlayer3D _reloadSound;
         private Timer _fireRateTimer;
         private Timer _reloadTimer;
 
-        // Statistiques
-        private int _totalShots = 0;
-        private int _totalHits = 0;
+        // Paramètres de l'arme
+        [Export] public int MaxAmmo { get; set; } = 30;
+        [Export] public float FireRate { get; set; } = 600; // coups par minute
+        [Export] public float ReloadTime { get; set; } = 2.0f; // secondes
+        [Export] public float Damage { get; set; } = 25.0f;
 
-        public int CurrentAmmo 
-        { 
-            get => _currentAmmo;
-            private set
-            {
-                _currentAmmo = Mathf.Clamp(value, 0, MaxAmmo);
-                EmitSignal(SignalName.AmmoChanged, _currentAmmo, MaxAmmo, ReserveAmmo);
-            }
-        }
+        // État de l'arme
+        private int _currentAmmo;
+        private bool _isReloading;
+        private bool _canShoot = true;
 
-        public bool IsReloading => _isReloading;
-        public bool CanShoot => !_isReloading && _canShoot && CurrentAmmo > 0;
-        public float Accuracy => _totalShots > 0 ? (float)_totalHits / _totalShots : 0.0f;
+        // Événements
+        [Signal] public delegate void AmmoChangedEventHandler(int current, int max);
+        [Signal] public delegate void ReloadStartedEventHandler();
+        [Signal] public delegate void ReloadFinishedEventHandler();
 
         public override void _Ready()
         {
-            GD.Print("🔫 Initialisation du WeaponManager...");
+            GD.Print("🔫 Initialisation du gestionnaire d'armes...");
             
-            // Initialiser les munitions
-            CurrentAmmo = MaxAmmo;
-            
-            // Configurer les timers
+            InitializeComponents();
             SetupTimers();
             
-            GD.Print($"🔫 Arme prête: {CurrentAmmo}/{MaxAmmo} munitions, {ReserveAmmo} en réserve");
-            GD.Print("✅ WeaponManager initialisé");
+            GD.Print("✅ Gestionnaire d'armes initialisé");
         }
 
         /// <summary>
-        /// Configure les timers pour le tir et le rechargement
+        /// Initialise les composants
+        /// </summary>
+        private void InitializeComponents()
+        {
+            // Créer les sons
+            _shootSound = new AudioStreamPlayer3D();
+            _shootSound.Name = "ShootSound";
+            AddChild(_shootSound);
+
+            _reloadSound = new AudioStreamPlayer3D();
+            _reloadSound.Name = "ReloadSound";
+            AddChild(_reloadSound);
+        }
+
+        /// <summary>
+        /// Configure les timers
         /// </summary>
         private void SetupTimers()
         {
-            // Timer pour la cadence de tir
+            // Timer de cadence de tir
             _fireRateTimer = new Timer();
-            _fireRateTimer.WaitTime = 60.0f / FireRate; // Convertir RPM en secondes
-            _fireRateTimer.OneShot = true;
+            _fireRateTimer.WaitTime = 60.0f / FireRate;
+            _fireRateTimer.Timeout += OnFireRateTick;
             AddChild(_fireRateTimer);
+            _fireRateTimer.Start();
 
-            // Timer pour le rechargement
+            // Timer de rechargement
             _reloadTimer = new Timer();
             _reloadTimer.WaitTime = ReloadTime;
-            _reloadTimer.OneShot = true;
-            _reloadTimer.Timeout += OnReloadComplete;
+            _reloadTimer.Timeout += OnReloadFinished;
             AddChild(_reloadTimer);
         }
 
         /// <summary>
-        /// Effectue un tir
+        /// Gère la cadence de tir
+        /// </summary>
+        private void OnFireRateTick()
+        {
+            _canShoot = true;
+        }
+
+        /// <summary>
+        /// Gère la fin du rechargement
+        /// </summary>
+        private void OnReloadFinished()
+        {
+            _isReloading = false;
+            _canShoot = true;
+            
+            EmitSignal(SignalName.ReloadFinished);
+            GD.Print("🔄 Rechargement terminé");
+        }
+
+        /// <summary>
+        /// Tire avec l'arme
         /// </summary>
         public void Shoot()
         {
-            if (!CanShoot)
+            if (!_canShoot || _currentAmmo <= 0)
             {
-                GD.Print("🔫 Impossible de tirer - Rechargement en cours ou pas de munitions");
+                GD.Print("🔫 Impossible de tirer - Pas de munitions");
                 return;
             }
 
-            // Consommer une munition
-            CurrentAmmo--;
-            _totalShots++;
+            GD.Print("🔫 Tir!");
             
-            GD.Print($"🔫 Tir! Munitions restantes: {CurrentAmmo}/{MaxAmmo}");
+            // Consommer une munition
+            _currentAmmo--;
+            
+            // Jouer le son de tir
+            if (_shootSound != null)
+            {
+                _shootSound.Play();
+            }
+
+            // Émettre le signal de changement de munitions
+            EmitSignal(SignalName.AmmoChanged, _currentAmmo, MaxAmmo);
             
             // Démarrer le timer de cadence
-            _canShoot = false;
             _fireRateTimer.Start();
             
-            // Émettre le signal
-            EmitSignal(SignalName.WeaponFired);
-            
-            // Vérifier si on doit recharger automatiquement
-            if (CurrentAmmo == 0 && ReserveAmmo > 0)
-            {
-                GD.Print("🔄 Plus de munitions - Rechargement automatique");
-                Reload();
-            }
+            GD.Print($"🔫 Munitions restantes: {_currentAmmo}/{MaxAmmo}");
         }
 
         /// <summary>
@@ -116,37 +130,46 @@ namespace Firebyte
         /// </summary>
         public void Reload()
         {
-            if (_isReloading || CurrentAmmo == MaxAmmo || ReserveAmmo == 0)
+            if (_isReloading)
             {
-                GD.Print("🔄 Impossible de recharger - Déjà en cours ou munitions pleines/réserve vide");
+                GD.Print("🔄 Rechargement déjà en cours...");
                 return;
             }
 
-            _isReloading = true;
-            GD.Print($"🔄 Rechargement en cours... ({ReloadTime}s)");
+            GD.Print("🔄 Début du rechargement...");
             
-            // Démarrer le timer de rechargement
+            _isReloading = true;
+            _canShoot = false;
+            
+            // Jouer le son de rechargement
+            if (_reloadSound != null)
+            {
+                _reloadSound.Play();
+            }
+
+            // Émettre le signal de début de rechargement
+            EmitSignal(SignalName.ReloadStarted);
+            
+            // Démarrer le timer de reloading
             _reloadTimer.Start();
+            
+            GD.Print("🔄 Rechargement en cours...");
         }
 
         /// <summary>
-        /// Appelé lorsque le rechargement est terminé
+        /// Indique si l'arme peut tirer
         /// </summary>
-        private void OnReloadComplete()
+        public bool CanShoot
         {
-            // Calculer les munitions à recharger
-            var ammoNeeded = MaxAmmo - CurrentAmmo;
-            var ammoToReload = Mathf.Min(ammoNeeded, ReserveAmmo);
-            
-            CurrentAmmo += ammoToReload;
-            ReserveAmmo -= ammoToReload;
-            
-            _isReloading = false;
-            
-            GD.Print($"✅ Rechargement terminé! {CurrentAmmo}/{MaxAmmo} munitions, {ReserveAmmo} en réserve");
-            
-            // Émettre le signal
-            EmitSignal(SignalName.WeaponReloaded);
+            get { return _canShoot && _currentAmmo > 0; }
+        }
+
+        /// <summary>
+        /// Obtient le nombre de munitions actuelles
+        /// </summary>
+        public int GetCurrentAmmo()
+        {
+            return _currentAmmo;
         }
 
         /// <summary>
@@ -154,107 +177,28 @@ namespace Firebyte
         /// </summary>
         public void AddAmmo(int amount)
         {
-            if (amount <= 0) return;
-            
-            ReserveAmmo += amount;
-            GD.Print($"📦 +{amount} munitions ajoutées! Réserve: {ReserveAmmo}");
-            
-            // Émettre le signal pour mettre à jour l'UI
-            EmitSignal(SignalName.AmmoChanged, CurrentAmmo, MaxAmmo, ReserveAmmo);
-        }
-
-        /// <summary>
-        /// Obtient les dégâts actuels de l'arme
-        /// </summary>
-        public float GetCurrentDamage()
-        {
-            return BaseDamage;
-        }
-
-        /// <summary>
-        /// Enregistre un tir réussi
-        /// </summary>
-        public void RegisterHit()
-        {
-            _totalHits++;
-            GD.Print($"🎯 Touché! Précision: {Accuracy:P1}");
-        }
-
-        /// <summary>
-        /// Réinitialise les statistiques de l'arme
-        /// </summary>
-        public void ResetStats()
-        {
-            _totalShots = 0;
-            _totalHits = 0;
-            GD.Print("📊 Statistiques de l'arme réinitialisées");
-        }
-
-        /// <summary>
-        /// Réinitialise complètement l'arme
-        /// </summary>
-        public void ResetWeapon()
-        {
-            // Annuler le rechargement en cours
-            if (_isReloading)
+            if (amount > 0)
             {
-                _reloadTimer.Stop();
-                _isReloading = false;
-            }
-            
-            // Réinitialiser les munitions
-            CurrentAmmo = MaxAmmo;
-            ReserveAmmo = 90;
-            
-            // Réinitialiser l'état
-            _canShoot = true;
-            
-            // Réinitialiser les statistiques
-            ResetStats();
-            
-            GD.Print("🔄 Arme réinitialisée complètement");
-        }
-
-        /// <summary>
-        /// Obtient des informations sur l'arme
-        /// </summary>
-        public string GetWeaponInfo()
-        {
-            return $"Arme: {CurrentAmmo}/{MaxAmmo} | Réserve: {ReserveAmmo} | Précision: {Accuracy:P1}";
-        }
-
-        /// <summary>
-        /// Vérifie si l'arme peut être rechargée
-        /// </summary>
-        public bool CanReload()
-        {
-            return !_isReloading && CurrentAmmo < MaxAmmo && ReserveAmmo > 0;
-        }
-
-        /// <summary>
-        /// Force l'arrêt du rechargement
-        /// </summary>
-        public void CancelReload()
-        {
-            if (_isReloading)
-            {
-                _reloadTimer.Stop();
-                _isReloading = false;
-                GD.Print("⏹️ Rechargement annulé");
+                _currentAmmo = Mathf.Min(_currentAmmo + amount, MaxAmmo);
+                GD.Print($"🔫 +{amount} munitions ajoutées. Total: {_currentAmmo}/{MaxAmmo}");
+                
+                // Émettre le signal de changement
+                EmitSignal(SignalName.AmmoChanged, _currentAmmo, MaxAmmo);
             }
         }
 
+        /// <summary>
+        /// Nettoie les ressources
+        /// </summary>
         public override void _ExitTree()
         {
-            // Nettoyer les timers
-            if (_fireRateTimer != null)
-            {
-                _fireRateTimer.QueueFree();
-            }
-            if (_reloadTimer != null)
-            {
-                _reloadTimer.QueueFree();
-            }
+            GD.Print("🧹 Nettoyage du gestionnaire d'armes...");
+            
+            // Nettoyer les références
+            _shootSound = null;
+            _reloadSound = null;
+            _fireRateTimer = null;
+            _reloadTimer = null;
         }
     }
 }

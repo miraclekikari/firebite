@@ -4,15 +4,15 @@ using System;
 namespace Firebyte
 {
     /// <summary>
-    /// Gestionnaire de statistiques pour la santé, l'énergie et l'XP
+    /// Gestionnaire de statistiques simplifié compatible Godot 4.2
     /// </summary>
     public partial class StatsManager : Node
     {
-        // Événements pour les changements de stats
-        [Signal] public delegate void HealthChangedEventHandler(float currentHealth, float maxHealth);
-        [Signal] public delegate void EnergyChangedEventHandler(float currentEnergy, float maxEnergy);
-        [Signal] public delegate void XPChangedEventHandler(int currentXP, int xpToNextLevel, int level);
-        [Signal] public delegate void PlayerLevelUpEventHandler(int newLevel);
+        // Événements
+        [Signal] public delegate void HealthChangedEventHandler(float current, float max);
+        [Signal] public delegate void EnergyChangedEventHandler(float current, float max);
+        [Signal] public delegate void XPChangedEventHandler(int current, int max);
+        [Signal] public delegate void PlayerLevelUpEventHandler(int level);
         [Signal] public delegate void DeathEventHandler();
 
         // Propriétés de santé
@@ -48,7 +48,7 @@ namespace Firebyte
                     
                     if (_currentHealth <= 0)
                     {
-                        EmitSignal(SignalName.Death);
+                        OnDeath();
                     }
                 }
             }
@@ -73,13 +73,13 @@ namespace Firebyte
             private set
             {
                 _xpToNextLevel = value;
-                EmitSignal(SignalName.XPChanged, CurrentXP, _xpToNextLevel, Level);
+                EmitSignal(SignalName.XPChanged, CurrentXP, _xpToNextLevel);
             }
         }
 
         public override void _Ready()
         {
-            GD.Print("📊 Initialisation du StatsManager...");
+            GD.Print("📊 Initialisation du gestionnaire de statistiques...");
             
             // Initialiser les valeurs
             _currentHealth = MaxHealth;
@@ -89,10 +89,7 @@ namespace Firebyte
             // Configurer le timer de régénération
             SetupRegenerationTimer();
             
-            GD.Print($"❤️ Santé: {CurrentHealth}/{MaxHealth}");
-            GD.Print($"⚡ Énergie: {CurrentEnergy}/{MaxEnergy}");
-            GD.Print($"⭐ XP: {CurrentXP}/{XPToNextLevel} (Niveau {Level})");
-            GD.Print("✅ StatsManager initialisé");
+            GD.Print("✅ Gestionnaire de statistiques initialisé");
         }
 
         /// <summary>
@@ -101,10 +98,10 @@ namespace Firebyte
         private void SetupRegenerationTimer()
         {
             _regenerationTimer = new Timer();
-            _regenerationTimer.WaitTime = 0.1f; // 10 fois par seconde
-            _regenerationTimer.Autostart = true;
+            _regenerationTimer.WaitTime = 0.5f; // 2 fois par seconde
             _regenerationTimer.Timeout += OnRegenerationTick;
             AddChild(_regenerationTimer);
+            _regenerationTimer.Start();
         }
 
         /// <summary>
@@ -117,13 +114,13 @@ namespace Firebyte
             // Régénération de la santé
             if (CurrentHealth < MaxHealth)
             {
-                CurrentHealth += HealthRegenerationRate * deltaTime;
+                CurrentHealth += (float)(HealthRegenerationRate * deltaTime);
             }
             
             // Régénération de l'énergie
             if (CurrentEnergy < MaxEnergy)
             {
-                CurrentEnergy += EnergyRegenerationRate * deltaTime;
+                CurrentEnergy += (float)(EnergyRegenerationRate * deltaTime);
             }
         }
 
@@ -148,31 +145,23 @@ namespace Firebyte
         {
             if (amount <= 0) return;
             
-            var previousHealth = CurrentHealth;
             CurrentHealth += amount;
-            var actualHeal = CurrentHealth - previousHealth;
+            GD.Print($"💚 Soins reçus: {amount}. Santé actuelle: {CurrentHealth}/{MaxHealth}");
             
-            GD.Print($"💚 Soins: {actualHeal:F1}. Santé actuelle: {CurrentHealth}/{MaxHealth}");
-            OnHealed(actualHeal);
+            OnHealed(amount);
         }
 
         /// <summary>
         /// Utilise de l'énergie
         /// </summary>
-        public bool UseEnergy(float amount)
+        public void UseEnergy(float amount)
         {
-            if (amount <= 0) return true;
+            if (amount <= 0) return;
             
-            if (CurrentEnergy >= amount)
-            {
-                CurrentEnergy -= amount;
-                GD.Print($"⚡ Énergie utilisée: {amount:F1}. Énergie actuelle: {CurrentEnergy}/{MaxEnergy}");
-                OnEnergyUsed(amount);
-                return true;
-            }
+            CurrentEnergy -= amount;
+            GD.Print($"⚡ Énergie utilisée: {amount}. Énergie actuelle: {CurrentEnergy}/{MaxEnergy}");
             
-            GD.Print($"❌ Énergie insuffisante: besoin {amount}, disponible {CurrentEnergy}");
-            return false;
+            OnEnergyUsed(amount);
         }
 
         /// <summary>
@@ -184,7 +173,6 @@ namespace Firebyte
             
             var actualAmount = (int)(amount * XPMultiplier);
             CurrentXP += actualAmount;
-            
             GD.Print($"⭐ XP gagnée: {actualAmount}. Total: {CurrentXP}/{XPToNextLevel}");
             
             // Vérifier si on peut monter en niveau
@@ -223,8 +211,8 @@ namespace Firebyte
             CurrentHealth = MaxHealth;
             CurrentEnergy = MaxEnergy;
             
-            GD.Print($"🎉 NIVEAU SUPÉRIEUR! Niveau {Level}");
-            GD.Print($"💊 Nouvelle santé max: {MaxHealth}");
+            GD.Print($"🎉 Niveau supérieur! Nouveau niveau: {Level}");
+            GD.Print($"❤️ Nouvelle santé max: {MaxHealth}");
             GD.Print($"⚡ Nouvelle énergie max: {MaxEnergy}");
             
             EmitSignal(SignalName.PlayerLevelUp, Level);
@@ -244,56 +232,24 @@ namespace Firebyte
         /// </summary>
         public void ResetStats()
         {
+            GD.Print("🔄 Réinitialisation des statistiques...");
+            
+            Level = 1;
+            CurrentXP = 0;
+            MaxHealth = 100;
+            MaxEnergy = 100;
+            HealthRegenerationRate = 2.0f;
+            EnergyRegenerationRate = 5.0f;
+            XPMultiplier = 1.0f;
+            
             CurrentHealth = MaxHealth;
             CurrentEnergy = MaxEnergy;
-            CurrentXP = 0;
-            Level = 1;
             CalculateXPToNextLevel();
             
-            GD.Print("🔄 Stats réinitialisées");
+            GD.Print("✅ Statistiques réinitialisées");
         }
 
-        /// <summary>
-        /// Obtient le pourcentage de santé
-        /// </summary>
-        public float GetHealthPercentage()
-        {
-            return CurrentHealth / MaxHealth;
-        }
-
-        /// <summary>
-        /// Obtient le pourcentage d'énergie
-        /// </summary>
-        public float GetEnergyPercentage()
-        {
-            return CurrentEnergy / MaxEnergy;
-        }
-
-        /// <summary>
-        /// Obtient le pourcentage d'XP pour le niveau actuel
-        /// </summary>
-        public float GetXPPercentage()
-        {
-            return (float)CurrentXP / XPToNextLevel;
-        }
-
-        /// <summary>
-        /// Vérifie si le personnage est en vie
-        /// </summary>
-        public bool IsAlive()
-        {
-            return CurrentHealth > 0;
-        }
-
-        /// <summary>
-        /// Vérifie si le personnage a suffisamment d'énergie
-        /// </summary>
-        public bool HasEnoughEnergy(float amount)
-        {
-            return CurrentEnergy >= amount;
-        }
-
-        // Méthodes virtuelles pour les effets (peuvent être surchargées)
+        // Méthodes virtuelles pour les effets visuels/sonores
         protected virtual void OnDamageTaken(float damage)
         {
             // Effet visuel/sonore de dégâts
@@ -301,7 +257,7 @@ namespace Firebyte
 
         protected virtual void OnHealed(float amount)
         {
-            // Effet visuel/sonore de soin
+            // Effet visuel/sonore de soins
         }
 
         protected virtual void OnEnergyUsed(float amount)
@@ -319,8 +275,19 @@ namespace Firebyte
             // Effet visuel/sonore de niveau supérieur
         }
 
+        protected virtual void OnDeath()
+        {
+            // Effet visuel/sonore de mort
+            EmitSignal(SignalName.Death);
+        }
+
+        /// <summary>
+        /// Nettoie les ressources
+        /// </summary>
         public override void _ExitTree()
         {
+            GD.Print("🧹 Nettoyage du gestionnaire de statistiques...");
+            
             // Nettoyer le timer
             if (_regenerationTimer != null)
             {

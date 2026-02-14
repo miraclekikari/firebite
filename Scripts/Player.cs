@@ -1,121 +1,112 @@
 using Godot;
+using System;
 
 namespace Firebyte
 {
     /// <summary>
-    /// Contrôleur de joueur FPS avec mouvements fluides et système de tir Raycast
+    /// Joueur principal compatible Godot 4.2
     /// </summary>
     public partial class Player : CharacterBody3D
     {
         // Références aux composants
         private Camera3D _camera;
-        private CollisionShape3D _collisionShape;
-        private StatsManager _stats;
-        private WeaponManager _weaponManager;
         private UI _gameUI;
+        private WeaponManager _weaponManager;
         private CameraShake _cameraShake;
         private ImpactEffects _impactEffects;
+        private StatsManager _stats;
 
         // Paramètres de mouvement
         [Export] public float Speed { get; set; } = 5.0f;
-        [Export] public float SprintSpeed { get; set; } = 8.0f;
-        [Export] public float JumpVelocity { get; set; } = 4.5f;
-        [Export] public float MouseSensitivity { get; set; } = 0.002f;
         [Export] public float Acceleration { get; set; } = 20.0f;
         [Export] public float Friction { get; set; } = 10.0f;
+        [Export] public float JumpVelocity { get; set; } = 4.5f;
 
-        // État du joueur
+        // Variables internes
         private Vector3 _velocity = Vector3.Zero;
-        private Vector2 _lookDirection = Vector2.Zero;
-        private bool _isSprinting = false;
-        private bool _isGrounded = false;
-
-        // Gravité
-        private float _gravity = ProjectSettings.GetSetting("physics/3d/default_gravity").AsSingle();
 
         public override void _Ready()
         {
-            GD.Print("🎮 Initialisation du Player...");
+            GD.Print("🎮 Initialisation du joueur...");
             
-            // Initialiser les composants
             InitializeComponents();
-            InitializeCamera();
-            InitializeStats();
-            InitializeWeapons();
-            InitializeUI();
-            InitializeEffects();
+            SetupCamera();
+            SetupInput();
             
-            // Capturer le curseur
-            Input.SetMouseMode(Input.MouseModeEnum.Captured);
-            
-            GD.Print("✅ Player initialisé avec succès");
+            GD.Print("✅ Joueur initialisé");
         }
 
         /// <summary>
-        /// Initialise les composants de base du joueur
+        /// Initialise les composants du joueur
         /// </summary>
         private void InitializeComponents()
         {
-            // Créer la collision shape
-            _collisionShape = new CapsuleShape3D();
-            _collisionShape.Height = 1.8f;
-            _collisionShape.Radius = 0.4f;
-            
-            var collisionNode = new CollisionShape3D();
-            collisionNode.Shape = _collisionShape;
-            collisionNode.Position = new Vector3(0, 0, 0.9f);
-            AddChild(collisionNode);
-        }
-
-        /// <summary>
-        /// Initialise la caméra FPS
-        /// </summary>
-        private void InitializeCamera()
-        {
+            // Créer la caméra
             _camera = new Camera3D();
             _camera.Name = "Camera3D";
-            _camera.Position = new Vector3(0, 0, 0.6f);
-            _camera.Fov = 75.0f;
-            _camera.Near = 0.1f;
-            _camera.Far = 1000.0f;
-            
+            _camera.Position = new Vector3(0, 1.6f, 0);
             AddChild(_camera);
-        }
 
-        /// <summary>
-        /// Initialise le gestionnaire de statistiques
-        /// </summary>
-        private void InitializeStats()
-        {
-            _stats = new StatsManager();
-            _stats.Name = "StatsManager";
-            AddChild(_stats);
-            
-            GD.Print($"❤️ Santé: {_stats.CurrentHealth}/{_stats.MaxHealth}");
-            GD.Print($"⚡ Énergie: {_stats.CurrentEnergy}/{_stats.MaxEnergy}");
-            GD.Print($"⭐ XP: {_stats.CurrentXP}/{_stats.XPToNextLevel} (Niveau {_stats.Level})");
-        }
+            // Créer les gestionnaires
+            _gameUI = new UI();
+            _gameUI.Name = "UI";
+            AddChild(_gameUI);
 
-        /// <summary>
-        /// Initialise le gestionnaire d'armes
-        /// </summary>
-        private void InitializeWeapons()
-        {
             _weaponManager = new WeaponManager();
             _weaponManager.Name = "WeaponManager";
             AddChild(_weaponManager);
+
+            _cameraShake = new CameraShake();
+            _cameraShake.Name = "CameraShake";
+            _camera.AddChild(_cameraShake);
+
+            _impactEffects = new ImpactEffects();
+            _impactEffects.Name = "ImpactEffects";
+            AddChild(_impactEffects);
+
+            _stats = new StatsManager();
+            _stats.Name = "StatsManager";
+            AddChild(_stats);
+
+            // Connecter les signaux
+            ConnectSignals();
         }
 
         /// <summary>
-        /// Initialise l'interface utilisateur
+        /// Configure la caméra
         /// </summary>
-        private void InitializeUI()
+        private void SetupCamera()
         {
-            _gameUI = GetNode<UI>("../GameUI");
-            if (_gameUI != null)
+            if (_camera != null)
             {
-                _gameUI.SetPlayerStats(_stats);
-                GD.Print("🖥️ Interface connectée au joueur");
+                _camera.Current = true;
+            }
+        }
+
+        /// <summary>
+        /// Configure les entrées
+        /// </summary>
+        private void SetupInput()
+        {
+            Input.MouseMode = Input.MouseModeEnum.Captured;
+        }
+
+        /// <summary>
+        /// Connecte les signaux
+        /// </summary>
+        private void ConnectSignals()
+        {
+            if (_stats != null)
+            {
+                _stats.HealthChanged += (current, max) => _gameUI?.UpdateHealth(current, max);
+                _stats.EnergyChanged += (current, max) => _gameUI?.UpdateEnergy(current, max);
+                _stats.XPChanged += (current, max) => _gameUI?.UpdateXP(current, max);
+                _stats.PlayerLevelUp += (level) => _gameUI?.UpdateLevel(level);
+            }
+
+            if (_weaponManager != null)
+            {
+                _weaponManager.AmmoChanged += (current, max) => _gameUI?.UpdateAmmo(current, max);
             }
         }
 
@@ -123,208 +114,72 @@ namespace Firebyte
         {
             var deltaTime = (float)delta;
             
-            // Gérer la gravité
-            if (!IsOnFloor())
-                _velocity.Y -= _gravity * deltaTime;
-            else
-                _isGrounded = true;
-
-            // Gérer le mouvement
             HandleMovement(deltaTime);
+            HandleInput();
             
+            // Appliquer la gravité
+            if (!IsOnFloor())
+            {
+                _velocity.Y -= ProjectSettings.GetSetting("physics/3d/default_gravity").AsSingle() * deltaTime;
+            }
+            else
+            {
+                _velocity.Y = 0;
+            }
+
             // Appliquer le mouvement
             Velocity = _velocity;
             MoveAndSlide();
             
-            // Mettre à jour l'UI
             UpdateUI();
         }
 
         /// <summary>
-        /// Gère les mouvements du joueur
+        /// Gère le mouvement du joueur
         /// </summary>
         private void HandleMovement(float deltaTime)
         {
-            // Calculer la direction de mouvement
             var inputDir = Input.GetVector("move_left", "move_right", "move_forward", "move_backward");
             var direction = (Transform.Basis * new Vector3(inputDir.X, 0, inputDir.Y)).Normalized();
             
-            // Vitesse actuelle
-            var currentSpeed = _isSprinting ? SprintSpeed : Speed;
-            
-            // Appliquer l'accélération
-            if (direction.Length() > 0)
+            if (direction != Vector3.Zero)
             {
-                _velocity.X = Mathf.MoveToward(_velocity.X, direction.X * currentSpeed, Acceleration * deltaTime);
-                _velocity.Z = Mathf.MoveToward(_velocity.Z, direction.Z * currentSpeed, Acceleration * deltaTime);
+                _velocity.X = direction.X * Speed;
+                _velocity.Z = direction.Z * Speed;
             }
             else
             {
-                // Appliquer le frottement
                 _velocity.X = Mathf.MoveToward(_velocity.X, 0, Friction * deltaTime);
                 _velocity.Z = Mathf.MoveToward(_velocity.Z, 0, Friction * deltaTime);
             }
         }
 
-        public override void _Input(InputEvent @event)
+        /// <summary>
+        /// Gère les entrées du joueur
+        /// </summary>
+        private void HandleInput()
         {
-            // Gérer le saut
-            if (@event is InputEventKey jumpEvent && jumpEvent.Pressed && jumpEvent.Keycode == Key.Space)
+            // Saut
+            if (Input.IsActionJustPressed("jump") && IsOnFloor())
             {
-                if (IsOnFloor())
-                {
-                    _velocity.Y = JumpVelocity;
-                    GD.Print("🦘 Saut!");
-                }
+                _velocity.Y = JumpVelocity;
             }
-            
-            // Gérer le sprint
-            if (@event is InputEventKey sprintEvent)
-            {
-                if (sprintEvent.Pressed && sprintEvent.Keycode == Key.Shift)
-                {
-                    _isSprinting = true;
-                    GD.Print("🏃 Sprint activé");
-                }
-                else if (!sprintEvent.Pressed && sprintEvent.Keycode == Key.Shift)
-                {
-                    _isSprinting = false;
-                    GD.Print("🚶 Sprint désactivé");
-                }
-            }
-            
-            // Gérer le tir
-            if (@event is InputEventMouseButton mouseEvent && mouseEvent.Pressed && mouseEvent.ButtonIndex == MouseButton.Left)
+
+            // Tir
+            if (Input.IsActionJustPressed("shoot"))
             {
                 Shoot();
             }
-            
-            // Gérer le rechargement
-            if (@event is InputEventKey reloadEvent && reloadEvent.Pressed && reloadEvent.Keycode == Key.R)
+
+            // Rechargement
+            if (Input.IsActionJustPressed("reload"))
             {
-                _weaponManager?.Reload();
-            }
-            
-            // Gérer le mouvement de la souris
-            if (@event is InputEventMouseMotion mouseMotion)
-            {
-                HandleMouseLook(mouseMotion);
+                Reload();
             }
         }
 
         /// <summary>
-        /// Gère le mouvement de la caméra (look)
-        /// </summary>
-        private void HandleMouseLook(InputEventMouseMotion mouseMotion)
-        {
-            // Rotation horizontale (tourner le corps)
-            RotateY(-mouseMotion.Relative.X * MouseSensitivity);
-            
-            // Rotation verticale (incliner la caméra)
-            _camera.RotateX(-mouseMotion.Relative.Y * MouseSensitivity);
-            
-            // Limiter l'angle vertical
-            var currentRotation = _camera.RotationDegrees;
-            currentRotation.X = Mathf.Clamp(currentRotation.X, -89, 89);
-            _camera.RotationDegrees = currentRotation;
-        }
-
-        /// <summary>
-        /// Effectue un tir avec raycast ultra-rapide
-        /// </summary>
-        private void Shoot()
-        {
-            if (_weaponManager == null || !_weaponManager.CanShoot())
-            {
-                GD.Print("🔫 Impossible de tirer - Rechargement ou munitions insuffisantes");
-                return;
-            }
-
-            GD.Print("🔫 Tir!");
-            
-            // Camera Shake pour le tir
-            _cameraShake?.ShakeFromShoot();
-            
-            // Créer le raycast depuis la caméra
-            var spaceState = GetWorld3D().DirectSpaceState;
-            var from = _camera.GlobalPosition;
-            var to = from + -_camera.GlobalTransform.Basis.Z * 1000; // 1000 unités de portée
-            
-            var query = PhysicsRayQueryParameters3D.Create(from, to);
-            query.CollisionMask = 1; // Layer 1 pour les objets touchables
-            
-            var result = spaceState.IntersectRay(query);
-            
-            if (result.Count > 0)
-            {
-                var hitPosition = (Vector3)result["position"];
-                var hitNormal = (Vector3)result["normal"];
-                var hitObject = (GodotObject)result["collider"];
-                
-                GD.Print($"✅ Touché! Position: {hitPosition}, Normal: {hitNormal}");
-                GD.Print($"🎯 Objet touché: {hitObject.GetType().Name}");
-                
-                // Appliquer les dégâts si l'objet a un StatsManager
-                var hitNode = (Node)hitObject;
-                var hitStats = hitNode.GetNode<StatsManager>("StatsManager");
-                if (hitStats != null)
-                {
-                    var damage = _weaponManager.GetCurrentDamage();
-                    hitStats.TakeDamage(damage);
-                    GD.Print($"💥 {damage} dégâts infligés!");
-                    
-                    // Camera Shake pour l'impact
-                    _cameraShake?.ShakeFromImpact(damage);
-                    
-                    // Effets d'impact
-                    _impactEffects?.CreateImpact(hitPosition, hitNormal, "metal");
-                    
-                    // Enregistrer le tir réussi
-                    _weaponManager.RegisterHit();
-                }
-                else
-                {
-                    // Effet d'impact même sans StatsManager
-                    _impactEffects?.CreateImpact(hitPosition, hitNormal, "metal");
-                }
-                
-                // Créer un effet visuel
-                CreateHitEffect(hitPosition, hitNormal);
-            }
-            else
-            {
-                GD.Print("❌ Raté - Aucune cible touchée");
-            }
-            
-            _weaponManager.Shoot();
-        }
-
-        /// <summary>
-        /// Crée un effet visuel au point d'impact
-        /// </summary>
-        private void CreateHitEffect(Vector3 position, Vector3 normal)
-        {
-            // Créer une sphère temporaire pour l'impact
-            var impact = new MeshInstance3D();
-            impact.Mesh = new SphereMesh();
-            impact.Mesh.Radius = 0.1f;
-            impact.Position = position;
-            
-            var material = new StandardMaterial3D();
-            material.AlbedoColor = Colors.Yellow;
-            material.EmissionEnabled = true;
-            material.Emission = Colors.Yellow;
-            impact.MaterialOverride = material;
-            
-            GetTree().CurrentScene.AddChild(impact);
-            
-            // Supprimer après 0.5 secondes
-            var timer = GetTree().CreateTimer(0.5);
-            timer.Timeout += () => impact.QueueFree();
-        }
-
-        /// <summary>
-        /// Met à jour l'interface utilisateur
+        /// Met à jour l'interface
         /// </summary>
         private void UpdateUI()
         {
@@ -332,79 +187,119 @@ namespace Firebyte
             {
                 _gameUI.UpdateHealth(_stats.CurrentHealth, _stats.MaxHealth);
                 _gameUI.UpdateEnergy(_stats.CurrentEnergy, _stats.MaxEnergy);
-                _gameUI.UpdateXP(_stats.CurrentXP, _stats.XPToNextLevel, _stats.Level);
+                _gameUI.UpdateXP(_stats.CurrentXP, _stats.XPToNextLevel);
+                _gameUI.UpdateLevel(_stats.Level);
             }
         }
 
-        /// Crée un effet visuel de dégâts
+        /// <summary>
+        /// Tire avec l'arme
         /// </summary>
-        private void CreateDamageEffect()
+        private void Shoot()
         {
-            // Flash rouge sur l'écran
-            if (_gameUI != null)
+            if (_weaponManager != null && _weaponManager.CanShoot)
             {
-                _gameUI.ShowDamageEffect();
+                GD.Print("🔫 Tir du joueur!");
+                
+                // Raycast pour détecter les impacts
+                PerformRaycast();
+                
+                // Effets de tir
+                _cameraShake?.ShakeFromShoot();
+                _weaponManager.Shoot();
             }
         }
 
         /// <summary>
-        /// Soigne le joueur
+        /// Effectue un raycast pour détecter les impacts
         /// </summary>
-        public void Heal(float amount)
+        private void PerformRaycast()
         {
-            _stats?.Heal(amount);
-            GD.Print($"💚 Le joueur est soigné de {amount} points! Santé: {_stats.CurrentHealth}/{_stats.MaxHealth}");
-        }
-
-        /// <summary>
-        /// Ajoute de l'XP au joueur
-        /// </summary>
-        public void AddXP(int amount)
-        {
-            _stats?.AddXP(amount);
-            GD.Print($"⭐ +{amount} XP gagnés! Niveau: {_stats.Level}");
-        }
-
-        /// <summary>
-        /// Initialise les effets visuels et sonores
-        /// </summary>
-        private void InitializeEffects()
-        {
-            GD.Print("⚡ Initialisation des effets...");
+            var spaceState = GetWorld3D().DirectSpaceState;
+            var from = _camera.GlobalPosition;
+            var to = _camera.GlobalPosition + _camera.GlobalTransform.Basis.Z * 1000;
+            var result = spaceState.IntersectRay(from, to, collisionMask: 1u);
             
-            // Camera Shake
-            _cameraShake = new CameraShake();
-            _cameraShake.Name = "CameraShake";
-            AddChild(_cameraShake);
-            
-            // Configurer le camera shake avec la caméra
-            if (_camera != null)
+            if (result.Count > 0)
             {
-                _cameraShake.SetupCamera(_camera);
+                var hit = result[0];
+                var hitPosition = new Vector3();
+                var hitNormal = new Vector3();
+                Node collider = null;
+                
+                // Accès sécurisé aux propriétés du dictionnaire
+                if (hit != null)
+                {
+                    var hitDict = hit.AsGodotDictionary();
+                    if (hitDict.TryGetValue("position", out var posVariant))
+                        hitPosition = (Vector3)posVariant;
+                    if (hitDict.TryGetValue("normal", out var normalVariant))
+                        hitNormal = (Vector3)normalVariant;
+                    if (hitDict.TryGetValue("collider", out var colliderVariant))
+                        collider = (Node)colliderVariant;
+                    
+                    GD.Print($"💥 Impact sur {collider?.Name} à {hitPosition}");
+                    
+                    // Effets visuels
+                    _impactEffects?.PlayImpact(hitPosition, hitNormal);
+                    
+                    // Camera shake
+                    _cameraShake?.ShakeFromImpact();
+                    
+                    // Appliquer des dégâts si cible valide
+                    if (collider is Enemy enemy)
+                    {
+                        enemy.TakeDamage(25);
+                    }
+                }
             }
-            
-            // Impact Effects
-            _impactEffects = new ImpactEffects();
-            _impactEffects.Name = "ImpactEffects";
-            AddChild(_impactEffects);
-            
-            GD.Print("✅ Effets initialisés");
         }
 
         /// <summary>
-        /// Obtient la position de la caméra pour le raycast
+        /// Recharge l'arme
         /// </summary>
-        public Vector3 GetCameraPosition()
+        private void Reload()
         {
-            return _camera?.GlobalPosition ?? GlobalPosition;
+            if (_weaponManager != null)
+            {
+                _weaponManager.Reload();
+                GD.Print("🔄 Rechargement de l'arme");
+            }
         }
 
         /// <summary>
-        /// Obtient la direction de la caméra
+        /// Applique des dégâts au joueur
         /// </summary>
-        public Vector3 GetCameraDirection()
+        public void TakeDamage(float damage)
         {
-            return _camera != null ? -_camera.GlobalTransform.Basis.Z : -Transform.Basis.Z;
+            if (_stats != null)
+            {
+                _stats.TakeDamage(damage);
+                
+                // Effet de dégâts
+                _gameUI?.ShowDamageEffect();
+                
+                // Camera shake
+                _cameraShake?.ShakeFromDamage();
+                
+                GD.Print($"💔 Le joueur a pris {damage} dégâts. Santé: {_stats.CurrentHealth}/{_stats.MaxHealth}");
+            }
+        }
+
+        /// <summary>
+        /// Nettoie les ressources
+        /// </summary>
+        public override void _ExitTree()
+        {
+            GD.Print("🧹 Nettoyage du joueur...");
+            
+            // Nettoyer les références
+            _camera = null;
+            _gameUI = null;
+            _weaponManager = null;
+            _cameraShake = null;
+            _impactEffects = null;
+            _stats = null;
         }
     }
 }

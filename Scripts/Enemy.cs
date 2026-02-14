@@ -4,21 +4,12 @@ using System;
 namespace Firebyte
 {
     /// <summary>
-    /// Ennemi avec système de loot et effets visuels
+    /// Ennemi simplifié compatible Godot 4.2
     /// </summary>
     public partial class Enemy : CharacterBody3D
     {
         // Événements
         [Signal] public delegate void EnemyDiedEventHandler(Enemy enemy);
-        [Signal] public delegate void LootDroppedEventHandler(Vector3 position, LootRarity rarity);
-
-        // Types de loot
-        public enum LootRarity
-        {
-            Common,    // 60% chance - Vert
-            Rare,      // 30% chance - Bleu  
-            Epic       // 10% chance - Violet
-        }
 
         // Références aux composants
         private StatsManager _stats;
@@ -34,17 +25,14 @@ namespace Firebyte
         [Export] public float AttackRange { get; set; } = 5.0f;
         [Export] public float AttackDamage { get; set; } = 15.0f;
         [Export] public int XPValue { get; set; } = 50;
-        [Export] public PackedScene LootBoxScene { get; set; }
 
         // État interne
         private Vector3 _velocity = Vector3.Zero;
         private bool _isDead = false;
         private Node3D _target;
 
-        // Couleurs par rareté
-        private readonly Color _commonColor = new Color(0.0f, 1.0f, 0.0f);    // Vert
-        private readonly Color _rareColor = new Color(0.0f, 0.5f, 1.0f);   // Bleu
-        private readonly Color _epicColor = new Color(0.8f, 0.0f, 1.0f);   // Violet
+        // Couleurs
+        private readonly Color _enemyColor = new Color(0.8f, 0.2f, 0.2f, 1.0f);
 
         public override void _Ready()
         {
@@ -114,7 +102,7 @@ namespace Firebyte
         {
             // Matériau de base
             var material = new StandardMaterial3D();
-            material.AlbedoColor = new Color(0.8f, 0.2f, 0.2f); // Rouge foncé
+            material.AlbedoColor = _enemyColor;
             material.Metallic = 0.3f;
             material.Roughness = 0.7f;
             _mesh.MaterialOverride = material;
@@ -138,11 +126,13 @@ namespace Firebyte
             processMaterial.Gravity = Vector3.Down * 9.8f;
             processMaterial.ScaleMin = 0.1f;
             processMaterial.ScaleMax = 0.3f;
-            processMaterial.Color = _rareColor;
-            processMaterial.Emission = Colors.White;
-            processMaterial.EmissionEnergy = 2.0f;
+            processMaterial.Color = Colors.Red;
 
-            _deathParticles.ProcessMaterial = processMaterial;
+            _deathParticles.MaterialOverride = new StandardMaterial3D();
+            ((StandardMaterial3D)_deathParticles.MaterialOverride).AlbedoColor = Colors.Red;
+            ((StandardMaterial3D)_deathParticles.MaterialOverride).EmissionEnabled = true;
+            ((StandardMaterial3D)_deathParticles.MaterialOverride).Emission = Colors.Red;
+
             _deathParticles.Amount = 50;
             _deathParticles.Lifetime = 2.0f;
             _deathParticles.OneShot = true;
@@ -286,9 +276,6 @@ namespace Firebyte
             // Effets visuels et sonores
             PlayDeathEffects();
 
-            // Laisser tomber le loot
-            DropLoot();
-
             // Émettre les signaux
             EmitSignal(SignalName.EnemyDied, this);
 
@@ -306,23 +293,6 @@ namespace Firebyte
             if (_deathParticles != null)
             {
                 _deathParticles.Emitting = true;
-                
-                // Changer la couleur selon la rareté du loot
-                var rarity = DetermineLootRarity();
-                var processMaterial = (ParticleProcessMaterial)_deathParticles.ProcessMaterial;
-                
-                switch (rarity)
-                {
-                    case LootRarity.Common:
-                        processMaterial.Color = _commonColor;
-                        break;
-                    case LootRarity.Rare:
-                        processMaterial.Color = _rareColor;
-                        break;
-                    case LootRarity.Epic:
-                        processMaterial.Color = _epicColor;
-                        break;
-                }
             }
 
             // Son de mort
@@ -347,232 +317,19 @@ namespace Firebyte
         }
 
         /// <summary>
-        /// Fait tomber le loot
+        /// Nettoie les ressources
         /// </summary>
-        private void DropLoot()
+        public override void _ExitTree()
         {
-            var rarity = DetermineLootRarity();
-            var position = GlobalPosition + Vector3.Up; // Léger décalage en hauteur
-
-            GD.Print($"🎁 Loot droppé: {rarity} à position {position}");
-
-            // Créer la boîte de loot
-            if (LootBoxScene != null)
-            {
-                var lootBox = LootBoxScene.Instantiate();
-                lootBox.Position = position;
-                
-                // Configurer la rareté
-                if (lootBox.HasMethod("SetRarity"))
-                {
-                    lootBox.Call("SetRarity", rarity);
-                }
-
-                GetTree().CurrentScene.AddChild(lootBox);
-            }
-            else
-            {
-                // Créer une boîte de loot par défaut
-                CreateDefaultLootBox(position, rarity);
-            }
-
-            // Émettre le signal
-            EmitSignal(SignalName.LootDropped, position, rarity);
-        }
-
-        /// <summary>
-        /// Détermine la rareté du loot
-        /// </summary>
-        private LootRarity DetermineLootRarity()
-        {
-            var random = new Random();
-            var roll = random.NextDouble();
-
-            if (roll < 0.6) return LootRarity.Common;    // 60%
-            if (roll < 0.9) return LootRarity.Rare;      // 30%
-            return LootRarity.Epic;                           // 10%
-        }
-
-        /// <summary>
-        /// Crée une boîte de loot par défaut
-        /// </summary>
-        private void CreateDefaultLootBox(Vector3 position, LootRarity rarity)
-        {
-            var lootBox = new MeshInstance3D();
-            lootBox.Name = "LootBox";
-            lootBox.Position = position;
-            lootBox.Mesh = new BoxMesh();
-            ((BoxMesh)lootBox.Mesh).Size = new Vector3(0.5f, 0.5f, 0.5f);
-
-            // Matériau selon la rareté
-            var material = new StandardMaterial3D();
-            material.EmissionEnabled = true;
+            GD.Print("🧹 Nettoyage de l'ennemi...");
             
-            switch (rarity)
-            {
-                case LootRarity.Common:
-                    material.AlbedoColor = _commonColor;
-                    material.Emission = _commonColor;
-                    break;
-                case LootRarity.Rare:
-                    material.AlbedoColor = _rareColor;
-                    material.Emission = _rareColor;
-                    break;
-                case LootRarity.Epic:
-                    material.AlbedoColor = _epicColor;
-                    material.Emission = _epicColor;
-                    break;
-            }
-
-            material.Metallic = 0.8f;
-            material.Roughness = 0.2f;
-            lootBox.MaterialOverride = material;
-
-            // Ajouter une collision pour la collection
-            var collisionShape = new CollisionShape3D();
-            collisionShape.Shape = new BoxShape3D();
-            collisionShape.Position = new Vector3(0, 0.25f, 0);
-            lootBox.AddChild(collisionShape);
-
-            // Ajouter un script de collecte
-            var lootScript = new LootBox();
-            lootScript.Rarity = rarity;
-            lootBox.AddChild(lootScript);
-
-            GetTree().CurrentScene.AddChild(lootBox);
-
-            // Animation de spawn
-            lootBox.Scale = Vector3.Zero;
-            var tween = CreateTween();
-            tween.TweenProperty(lootBox, "scale", Vector3.One, 0.3f);
-            tween.SetEase(Tween.EaseType.Out);
-            tween.SetTrans(Tween.TransitionType.Back);
-        }
-
-        /// <summary>
-        /// Obtient la couleur selon la rareté
-        /// </summary>
-        public Color GetRarityColor(LootRarity rarity)
-        {
-            return rarity switch
-            {
-                LootRarity.Common => _commonColor,
-                LootRarity.Rare => _rareColor,
-                LootRarity.Epic => _epicColor,
-                _ => Colors.White
-            };
-        }
-    }
-
-    /// <summary>
-    /// Script pour les boîtes de loot
-    /// </summary>
-    public partial class LootBox : Node3D
-    {
-        [Export] public Enemy.LootRarity Rarity { get; set; } = Enemy.LootRarity.Common;
-        
-        private bool _isCollected = false;
-        private float _rotationSpeed = 2.0f;
-
-        public override void _Ready()
-        {
-            // Ajouter au groupe "loot" pour la détection
-            AddToGroup("loot");
-        }
-
-        public override void _Process(double delta)
-        {
-            if (_isCollected) return;
-
-            // Rotation de la boîte
-            RotateY((float)delta * _rotationSpeed);
-
-            // Vérifier si le joueur est proche
-            var players = GetTree().GetNodesInGroup("player");
-            foreach (Node playerNode in players)
-            {
-                var player = playerNode as Node3D;
-                if (player == null) continue;
-
-                var distance = GlobalPosition.DistanceTo(player.GlobalPosition);
-                if (distance < 2.0f) // Distance de collecte
-                {
-                    Collect(player);
-                    break;
-                }
-            }
-        }
-
-        /// <summary>
-        /// Collecte le loot
-        /// </summary>
-        private void Collect(Node3D collector)
-        {
-            if (_isCollected) return;
-
-            _isCollected = true;
-            GD.Print($"🎁 Loot collecté: {Rarity} par {collector.Name}");
-
-            // Donner des bonus selon la rareté
-            if (collector is Player player)
-            {
-                switch (Rarity)
-                {
-                    case Enemy.LootRarity.Common:
-                        player.Heal(25);
-                        player.AddXP(25);
-                        break;
-                    case Enemy.LootRarity.Rare:
-                        player.Heal(50);
-                        player.AddXP(75);
-                        break;
-                    case Enemy.LootRarity.Epic:
-                        player.Heal(100);
-                        player.AddXP(150);
-                        break;
-                }
-            }
-
-            // Effet de collecte
-            PlayCollectEffect();
-
-            // Détruire la boîte
-            QueueFree();
-        }
-
-        /// <summary>
-        /// Joue l'effet de collecte
-        /// </summary>
-        private void PlayCollectEffect()
-        {
-            // Particules de collecte
-            var particles = new CpuParticles3D();
-            particles.Position = GlobalPosition;
-            particles.OneShot = true;
-            particles.Amount = 20;
-            particles.Lifetime = 1.0f;
-
-            var processMaterial = new ParticleProcessMaterial();
-            processMaterial.Direction = Vector3.Up;
-            processMaterial.Spread = 180.0f;
-            processMaterial.InitialVelocityMin = 1.0f;
-            processMaterial.InitialVelocityMax = 3.0f;
-            processMaterial.ScaleMin = 0.05f;
-            processMaterial.ScaleMax = 0.2f;
-            
-            // Couleur selon la rareté
-            var enemy = new Enemy();
-            processMaterial.Color = enemy.GetRarityColor(Rarity);
-            processMaterial.Emission = processMaterial.Color;
-            processMaterial.EmissionEnergy = 3.0f;
-
-            particles.ProcessMaterial = processMaterial;
-            GetTree().CurrentScene.AddChild(particles);
-            particles.Emitting = true;
-
-            // Détruire après l'animation
-            var timer = GetTree().CreateTimer(2.0f);
-            timer.Timeout += () => particles.QueueFree();
+            // Nettoyer les références
+            _stats = null;
+            _mesh = null;
+            _collisionShape = null;
+            _deathParticles = null;
+            _deathSound = null;
+            _target = null;
         }
     }
 }

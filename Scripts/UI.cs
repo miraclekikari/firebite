@@ -4,11 +4,11 @@ using System;
 namespace Firebyte
 {
     /// <summary>
-    /// Interface utilisateur cyberpunk pour Firebyte FPS
+    /// Interface utilisateur simplifiée compatible Godot 4.2
     /// </summary>
     public partial class UI : Control
     {
-        // Références aux éléments de l'UI
+        // Références aux éléments de l'interface
         private ProgressBar _healthBar;
         private ProgressBar _energyBar;
         private ProgressBar _xpBar;
@@ -17,12 +17,9 @@ namespace Firebyte
         private Label _xpLabel;
         private Label _levelLabel;
         private Label _ammoLabel;
-        private Label _weaponInfoLabel;
         private ColorRect _damageEffect;
         private ColorRect _crosshair;
-
-        // Références aux stats
-        private StatsManager _playerStats;
+        private ColorRect _crosshairV;
 
         // Couleurs cyberpunk
         private readonly Color _neonBlue = new Color(0.0f, 0.8f, 1.0f);
@@ -35,7 +32,7 @@ namespace Firebyte
             GD.Print("🖥️ Initialisation de l'interface cyberpunk...");
             
             // Configurer l'UI
-            SetAnchorsAndOffsetsPreset(Control.Preset.FullRect);
+            SetAnchorsAndOffsetsPreset(Control.LayoutPreset.FullRect);
             CreateLayout();
             ApplyCyberpunkStyling();
             
@@ -75,7 +72,7 @@ namespace Firebyte
             var ammoPanel = new Panel();
             ammoPanel.Position = new Vector2(-320, 20);
             ammoPanel.Size = new Vector2(300, 60);
-            ammoPanel.SetAnchorsAndOffsetsPreset(Control.Preset.TopRight);
+            ammoPanel.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.TopRight);
             AddChild(ammoPanel);
 
             // Labels des munitions
@@ -93,25 +90,20 @@ namespace Firebyte
         /// </summary>
         private void CreateHealthBar(Control parent)
         {
-            var healthContainer = new HBoxContainer();
-            healthContainer.Position = new Vector2(10, 10);
-            parent.AddChild(healthContainer);
-
-            _healthLabel = new Label();
-            _healthLabel.Text = "❤️";
-            _healthLabel.Size = new Vector2(30, 20);
-            healthContainer.AddChild(_healthLabel);
-
             _healthBar = new ProgressBar();
-            _healthBar.Size = new Vector2(200, 20);
+            _healthBar.Position = new Vector2(10, 10);
+            _healthBar.Size = new Vector2(280, 20);
             _healthBar.MaxValue = 100;
             _healthBar.Value = 100;
-            healthContainer.AddChild(_healthBar);
+            _healthBar.Modulate = _neonGreen;
+            parent.AddChild(_healthBar);
 
-            var healthValueLabel = new Label();
-            healthValueLabel.Size = new Vector2(50, 20);
-            healthValueLabel.Text = "100/100";
-            healthContainer.AddChild(healthValueLabel);
+            // Label de santé
+            _healthLabel = new Label();
+            _healthLabel.Position = new Vector2(10, 35);
+            _healthLabel.Text = "Santé: 100/100";
+            _healthLabel.Modulate = _neonGreen;
+            parent.AddChild(_healthLabel);
         }
 
         /// <summary>
@@ -119,25 +111,20 @@ namespace Firebyte
         /// </summary>
         private void CreateEnergyBar(Control parent)
         {
-            var energyContainer = new HBoxContainer();
-            energyContainer.Position = new Vector2(10, 40);
-            parent.AddChild(energyContainer);
-
-            _energyLabel = new Label();
-            _energyLabel.Text = "⚡";
-            _energyLabel.Size = new Vector2(30, 20);
-            energyContainer.AddChild(_energyLabel);
-
             _energyBar = new ProgressBar();
-            _energyBar.Size = new Vector2(200, 20);
+            _energyBar.Position = new Vector2(10, 60);
+            _energyBar.Size = new Vector2(280, 20);
             _energyBar.MaxValue = 100;
             _energyBar.Value = 100;
-            energyContainer.AddChild(_energyBar);
+            _energyBar.Modulate = _neonBlue;
+            parent.AddChild(_energyBar);
 
-            var energyValueLabel = new Label();
-            energyValueLabel.Size = new Vector2(50, 20);
-            energyValueLabel.Text = "100/100";
-            energyContainer.AddChild(energyValueLabel);
+            // Label d'énergie
+            _energyLabel = new Label();
+            _energyLabel.Position = new Vector2(10, 85);
+            _energyLabel.Text = "Énergie: 100/100";
+            _energyLabel.Modulate = _neonBlue;
+            parent.AddChild(_energyLabel);
         }
 
         /// <summary>
@@ -145,30 +132,20 @@ namespace Firebyte
         /// </summary>
         private void CreateXPBar(Control parent)
         {
-            var xpContainer = new HBoxContainer();
-            xpContainer.Position = new Vector2(10, 70);
-            parent.AddChild(xpContainer);
-
-            var xpIconLabel = new Label();
-            xpIconLabel.Text = "⭐";
-            xpIconLabel.Size = new Vector2(30, 20);
-            xpContainer.AddChild(xpIconLabel);
-
             _xpBar = new ProgressBar();
-            _xpBar.Size = new Vector2(200, 20);
+            _xpBar.Position = new Vector2(10, 110);
+            _xpBar.Size = new Vector2(280, 20);
             _xpBar.MaxValue = 100;
             _xpBar.Value = 0;
-            xpContainer.AddChild(_xpBar);
+            _xpBar.Modulate = _neonPink;
+            parent.AddChild(_xpBar);
 
-            _xpLabel = new Label();
-            _xpLabel.Size = new Vector2(80, 20);
-            _xpLabel.Text = "XP: 0/100";
-            xpContainer.AddChild(_xpLabel);
-
+            // Label de niveau
             _levelLabel = new Label();
-            _levelLabel.Size = new Vector2(60, 20);
-            _levelLabel.Text = "Niv. 1";
-            xpContainer.AddChild(_levelLabel);
+            _levelLabel.Position = new Vector2(10, 135);
+            _levelLabel.Text = "Niveau: 1";
+            _levelLabel.Modulate = _neonPink;
+            parent.AddChild(_levelLabel);
         }
 
         /// <summary>
@@ -176,11 +153,11 @@ namespace Firebyte
         /// </summary>
         private void CreateInfoLabels(Control parent)
         {
-            _weaponInfoLabel = new Label();
-            _weaponInfoLabel.Position = new Vector2(10, 10);
-            _weaponInfoLabel.Size = new Vector2(280, 30);
-            _weaponInfoLabel.Text = "🔫 Assault Rifle";
-            parent.AddChild(_weaponInfoLabel);
+            _xpLabel = new Label();
+            _xpLabel.Position = new Vector2(10, 10);
+            _xpLabel.Text = "XP: 0/100";
+            _xpLabel.Modulate = _neonPink;
+            parent.AddChild(_xpLabel);
         }
 
         /// <summary>
@@ -190,9 +167,8 @@ namespace Firebyte
         {
             _ammoLabel = new Label();
             _ammoLabel.Position = new Vector2(10, 10);
-            _ammoLabel.Size = new Vector2(280, 40);
-            _ammoLabel.Text = "30/30 | 90";
-            _ammoLabel.HorizontalAlignment = HorizontalAlignment.Right;
+            _ammoLabel.Text = "Munitions: 30/30";
+            _ammoLabel.Modulate = _neonBlue;
             parent.AddChild(_ammoLabel);
         }
 
@@ -202,7 +178,7 @@ namespace Firebyte
         private void CreateDamageEffect()
         {
             _damageEffect = new ColorRect();
-            _damageEffect.SetAnchorsAndOffsetsPreset(Control.Preset.FullRect);
+            _damageEffect.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.FullRect);
             _damageEffect.Color = new Color(1, 0, 0, 0);
             _damageEffect.Visible = false;
             AddChild(_damageEffect);
@@ -217,15 +193,15 @@ namespace Firebyte
             _crosshair.Position = new Vector2(-10, -1);
             _crosshair.Size = new Vector2(20, 2);
             _crosshair.Color = _neonBlue;
-            _crosshair.SetAnchorsAndOffsetsPreset(Control.Preset.Center);
+            _crosshair.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.Center);
             AddChild(_crosshair);
 
-            var crosshairV = new ColorRect();
-            crosshairV.Position = new Vector2(-1, -10);
-            crosshairV.Size = new Vector2(2, 20);
-            crosshairV.Color = _neonBlue;
-            crosshairV.SetAnchorsAndOffsetsPreset(Control.Preset.Center);
-            AddChild(crosshairV);
+            _crosshairV = new ColorRect();
+            _crosshairV.Position = new Vector2(-1, -10);
+            _crosshairV.Size = new Vector2(2, 20);
+            _crosshairV.Color = _neonBlue;
+            _crosshairV.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.Center);
+            AddChild(_crosshairV);
         }
 
         /// <summary>
@@ -241,91 +217,37 @@ namespace Firebyte
             panelStyle.BorderWidthRight = 2;
             panelStyle.BorderWidthTop = 2;
             panelStyle.BorderWidthBottom = 2;
-            panelStyle.CornerRadiusTopLeft = 5;
-            panelStyle.CornerRadiusTopRight = 5;
-            panelStyle.CornerRadiusBottomLeft = 5;
-            panelStyle.CornerRadiusBottomRight = 5;
 
             // Appliquer le style aux panneaux
-            foreach (Node child in GetChildren())
+            foreach (Panel panel in GetChildren())
             {
-                if (child is Panel panel)
+                if (panel is Panel p)
                 {
-                    panel.AddThemeStyleboxOverride("panel", panelStyle);
+                    p.AddThemeStyleboxOverride("panel", panelStyle);
                 }
             }
 
             // Style pour les barres de progression
-            var progressBarStyle = new StyleBoxFlat();
-            progressBarStyle.BgColor = new Color(0.1f, 0.1f, 0.2f);
-            progressBarStyle.BorderColor = _neonGreen;
-            progressBarStyle.BorderWidthBottom = 1;
-
-            var progressBarFillStyle = new StyleBoxFlat();
-            progressBarFillStyle.BgColor = _neonGreen;
+            var progressStyle = new StyleBoxFlat();
+            progressStyle.BgColor = new Color(0.1f, 0.1f, 0.1f, 0.8f);
+            progressStyle.BorderColor = _neonBlue;
+            progressStyle.BorderWidthLeft = 1;
+            progressStyle.BorderWidthRight = 1;
+            progressStyle.BorderWidthTop = 1;
+            progressStyle.BorderWidthBottom = 1;
 
             // Appliquer le style aux barres
             if (_healthBar != null)
             {
-                _healthBar.AddThemeStyleboxOverride("background", progressBarStyle);
-                _healthBar.AddThemeStyleboxOverride("fill", progressBarFillStyle);
+                _healthBar.AddThemeStyleboxOverride("fill", progressStyle);
             }
-
             if (_energyBar != null)
             {
-                var energyFillStyle = new StyleBoxFlat();
-                energyFillStyle.BgColor = _neonBlue;
-                _energyBar.AddThemeStyleboxOverride("background", progressBarStyle);
-                _energyBar.AddThemeStyleboxOverride("fill", energyFillStyle);
+                _energyBar.AddThemeStyleboxOverride("fill", progressStyle);
             }
-
             if (_xpBar != null)
             {
-                var xpFillStyle = new StyleBoxFlat();
-                xpFillStyle.BgColor = _neonPink;
-                _xpBar.AddThemeStyleboxOverride("background", progressBarStyle);
-                _xpBar.AddThemeStyleboxOverride("fill", xpFillStyle);
-            }
-
-            // Style pour les labels
-            var labelStyle = new LabelSettings();
-            labelStyle.FontColor = _neonGreen;
-            labelStyle.FontSize = 14;
-
-            // Appliquer le style aux labels
-            ApplyLabelStyle(_healthLabel, labelStyle);
-            ApplyLabelStyle(_energyLabel, labelStyle);
-            ApplyLabelStyle(_xpLabel, labelStyle);
-            ApplyLabelStyle(_levelLabel, labelStyle);
-            ApplyLabelStyle(_ammoLabel, labelStyle);
-            ApplyLabelStyle(_weaponInfoLabel, labelStyle);
-        }
-
-        /// <summary>
-        /// Applique le style à un label
-        /// </summary>
-        private void ApplyLabelStyle(Label label, LabelSettings style)
-        {
-            if (label != null)
-            {
-                label.LabelSettings = style;
-            }
-        }
-
-        /// <summary>
-        /// Définit les stats du joueur
-        /// </summary>
-        public void SetPlayerStats(StatsManager stats)
-        {
-            _playerStats = stats;
-            
-            // Connecter les signaux
-            if (_playerStats != null)
-            {
-                _playerStats.HealthChanged += OnHealthChanged;
-                _playerStats.EnergyChanged += OnEnergyChanged;
-                _playerStats.XPChanged += OnXPChanged;
-                _playerStats.LevelUp += OnLevelUp;
+                _xpBar.AddThemeStyleboxOverride("fill", progressStyle);
             }
         }
 
@@ -338,28 +260,10 @@ namespace Firebyte
             {
                 _healthBar.MaxValue = max;
                 _healthBar.Value = current;
-                
-                // Mettre à jour le label
-                var healthValueLabel = _healthBar.GetParent().GetChild<Label>(2);
-                if (healthValueLabel != null)
-                {
-                    healthValueLabel.Text = $"{current:F0}/{max:F0}";
-                }
-                
-                // Changer la couleur selon la santé
-                var healthPercentage = current / max;
-                Color fillColor;
-                
-                if (healthPercentage > 0.6f)
-                    fillColor = Colors.Green;
-                else if (healthPercentage > 0.3f)
-                    fillColor = Colors.Yellow;
-                else
-                    fillColor = Colors.Red;
-                
-                var fillStyle = new StyleBoxFlat();
-                fillStyle.BgColor = fillColor;
-                _healthBar.AddThemeStyleboxOverride("fill", fillStyle);
+            }
+            if (_healthLabel != null)
+            {
+                _healthLabel.Text = $"Santé: {current:F0}/{max:F0}";
             }
         }
 
@@ -372,28 +276,48 @@ namespace Firebyte
             {
                 _energyBar.MaxValue = max;
                 _energyBar.Value = current;
-                
-                // Mettre à jour le label
-                var energyValueLabel = _energyBar.GetParent().GetChild<Label>(2);
-                if (energyValueLabel != null)
-                {
-                    energyValueLabel.Text = $"{current:F0}/{max:F0}";
-                }
+            }
+            if (_energyLabel != null)
+            {
+                _energyLabel.Text = $"Énergie: {current:F0}/{max:F0}";
             }
         }
 
         /// <summary>
         /// Met à jour la barre d'XP
         /// </summary>
-        public void UpdateXP(int current, int toNext, int level)
+        public void UpdateXP(int current, int max)
         {
-            if (_xpBar != null && _xpLabel != null && _levelLabel != null)
+            if (_xpBar != null)
             {
-                _xpBar.MaxValue = toNext;
+                _xpBar.MaxValue = max;
                 _xpBar.Value = current;
-                
-                _xpLabel.Text = $"XP: {current}/{toNext}";
-                _levelLabel.Text = $"Niv. {level}";
+            }
+            if (_xpLabel != null)
+            {
+                _xpLabel.Text = $"XP: {current}/{max}";
+            }
+        }
+
+        /// <summary>
+        /// Met à jour le niveau
+        /// </summary>
+        public void UpdateLevel(int level)
+        {
+            if (_levelLabel != null)
+            {
+                _levelLabel.Text = $"Niveau: {level}";
+            }
+        }
+
+        /// <summary>
+        /// Met à jour les munitions
+        /// </summary>
+        public void UpdateAmmo(int current, int max)
+        {
+            if (_ammoLabel != null)
+            {
+                _ammoLabel.Text = $"Munitions: {current}/{max}";
             }
         }
 
@@ -406,52 +330,28 @@ namespace Firebyte
             {
                 _damageEffect.Visible = true;
                 _damageEffect.Color = new Color(1, 0, 0, 0.3f);
-                
+
                 // Animation de fondu
                 var tween = CreateTween();
-                tween.TweenProperty(_damageEffect, "color", new Color(1, 0, 0, 0), 0.3f);
+                tween.TweenProperty(_damageEffect, "color:a", 0.0f, 0.5f);
                 tween.TweenCallback(Callable.From(() => _damageEffect.Visible = false));
             }
         }
 
         /// <summary>
-        /// Met à jour les informations de l'arme
+        /// Cache l'interface
         /// </summary>
-        public void UpdateWeaponInfo(int currentAmmo, int maxAmmo, int reserveAmmo)
+        public void HideUI()
         {
-            if (_ammoLabel != null)
-            {
-                _ammoLabel.Text = $"{currentAmmo}/{maxAmmo} | {reserveAmmo}";
-            }
+            Visible = false;
         }
 
-        // Gestionnaires d'événements
-        private void OnHealthChanged(float current, float max)
+        /// <summary>
+        /// Affiche l'interface
+        /// </summary>
+        public void ShowUI()
         {
-            UpdateHealth(current, max);
-        }
-
-        private void OnEnergyChanged(float current, float max)
-        {
-            UpdateEnergy(current, max);
-        }
-
-        private void OnXPChanged(int current, int toNext, int level)
-        {
-            UpdateXP(current, toNext, level);
-        }
-
-        private void OnLevelUp(int newLevel)
-        {
-            // Effet spécial pour le niveau supérieur
-            if (_levelLabel != null)
-            {
-                var originalColor = _levelLabel.LabelSettings.FontColor;
-                _levelLabel.LabelSettings.FontColor = _neonPink;
-                
-                var tween = CreateTween();
-                tween.TweenProperty(_levelLabel.LabelSettings, "font_color", originalColor, 1.0f);
-            }
+            Visible = true;
         }
     }
 }

@@ -15,7 +15,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCopyrightAttribute("Copyright © 2025 Firebyte Team")]
 [assembly: System.Reflection.AssemblyDescriptionAttribute("Firebyte - Cyberpunk FPS Game")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+86ea5e14aa254c6c3170ab5003f33537e5f1bb93")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+61b1e74580bf28e09ce814f3d716e93254cff569")]
 [assembly: System.Reflection.AssemblyProductAttribute("Firebyte")]
 [assembly: System.Reflection.AssemblyTitleAttribute("Firebyte")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

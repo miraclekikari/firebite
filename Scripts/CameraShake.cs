@@ -1,96 +1,56 @@
 using Godot;
+using System;
 
 namespace Firebyte
 {
     /// <summary>
-    /// Système de Camera Shake pour le feedback visuel
+    /// Gestionnaire de secousse de caméra simplifié compatible Godot 4.2
     /// </summary>
     public partial class CameraShake : Node
     {
-        // Référence à la caméra
+        // Références
         private Camera3D _camera;
-        
-        // Paramètres du shake
+        private Random _random = new Random();
+
+        // Paramètres de secousse
         [Export] public float ShakeIntensity { get; set; } = 0.5f;
         [Export] public float ShakeDuration { get; set; } = 0.3f;
-        [Export] public float ShakeDecay { get; set; } = 0.8f;
-        
+        [Export] public float ShakeSpeed { get; set; } = 15.0f;
+
         // État interne
-        private float _currentIntensity = 0.0f;
-        private float _currentDuration = 0.0f;
-        private Vector3 _originalPosition;
         private bool _isShaking = false;
+        private float _shakeTime = 0.0f;
+        private Vector3 _originalPosition;
+        private Vector3 _shakeOffset;
 
         public override void _Ready()
         {
-            GD.Print("📸 CameraShake initialisé");
-        }
-
-        /// <summary>
-        /// Configure la caméra à secouer
-        /// </summary>
-        public void SetupCamera(Camera3D camera)
-        {
-            _camera = camera;
-            _originalPosition = camera.Position;
-        }
-
-        /// <summary>
-        /// Démarre un shake de caméra
-        /// </summary>
-        public void Shake(float intensity = -1, float duration = -1)
-        {
-            if (_camera == null) return;
+            GD.Print("📷 Initialisation du gestionnaire de secousse de caméra...");
             
-            // Utiliser les valeurs par défaut si non spécifiées
-            var shakeIntensity = intensity < 0 ? ShakeIntensity : intensity;
-            var shakeDuration = duration < 0 ? ShakeDuration : duration;
-            
-            // Combiner avec le shake actuel
-            _currentIntensity = Mathf.Max(_currentIntensity, shakeIntensity);
-            _currentDuration = Mathf.Max(_currentDuration, shakeDuration);
-            
-            if (!_isShaking)
+            // Trouver la caméra parente
+            _camera = GetParent() as Camera3D;
+            if (_camera == null)
             {
-                _isShaking = true;
-                _originalPosition = _camera.Position;
+                // Chercher dans les enfants
+                foreach (Node child in GetChildren())
+                {
+                    if (child is Camera3D cam)
+                    {
+                        _camera = cam;
+                        break;
+                    }
+                }
             }
-            
-            GD.Print($"📸 Camera shake: intensité={shakeIntensity:F2}, durée={shakeDuration:F2}s");
-        }
 
-        /// <summary>
-        /// Shake spécifique pour le tir
-        /// </summary>
-        public void ShakeFromShoot()
-        {
-            Shake(0.3f, 0.15f);
-        }
-
-        /// <summary>
-        /// Shake spécifique pour l'impact
-        /// </summary>
-        public void ShakeFromImpact(float impactForce)
-        {
-            var intensity = Mathf.Clamp(impactForce * 0.1f, 0.2f, 1.5f);
-            var duration = Mathf.Clamp(impactForce * 0.05f, 0.1f, 0.5f);
-            Shake(intensity, duration);
-        }
-
-        /// <summary>
-        /// Shake spécifique pour l'explosion
-        /// </summary>
-        public void ShakeFromExplosion()
-        {
-            Shake(1.2f, 0.8f);
-        }
-
-        /// <summary>
-        /// Shake spécifique pour les dégâts
-        /// </summary>
-        public void ShakeFromDamage()
-        {
-            Shake(0.6f, 0.25f);
+            if (_camera != null)
+            {
+                _originalPosition = _camera.Position;
+                GD.Print("✅ Gestionnaire de secousse de caméra initialisé");
+            }
+            else
+            {
+                GD.Print("⚠️ Aucune caméra trouvée pour le CameraShake");
+            }
         }
 
         public override void _Process(double delta)
@@ -98,61 +58,120 @@ namespace Firebyte
             if (!_isShaking || _camera == null) return;
 
             var deltaTime = (float)delta;
+            _shakeTime += deltaTime;
 
-            // Mettre à jour la durée
-            _currentDuration -= deltaTime;
-            
-            if (_currentDuration <= 0)
+            if (_shakeTime >= ShakeDuration)
             {
-                // Fin du shake
-                _camera.Position = _originalPosition;
+                // Fin de la secousse
                 _isShaking = false;
-                _currentIntensity = 0;
+                _shakeTime = 0.0f;
+                _camera.Position = _originalPosition;
                 return;
             }
 
-            // Calculer le shake actuel
-            var decayedIntensity = _currentIntensity * Mathf.Pow(ShakeDecay, (ShakeDuration - _currentDuration));
-            
-            // Génération du mouvement de shake
-            var shakeOffset = new Vector3();
-            shakeOffset.X = (float)GD.RandRange(-1.0, 1.0) * decayedIntensity;
-            shakeOffset.Y = (float)GD.RandRange(-1.0, 1.0) * decayedIntensity;
-            shakeOffset.Z = (float)GD.RandRange(-1.0, 1.0) * decayedIntensity * 0.5f; // Moins de Z
-            
-            // Appliquer le shake
-            _camera.Position = _originalPosition + shakeOffset;
+            // Calculer la secousse
+            var progress = _shakeTime / ShakeDuration;
+            var intensity = ShakeIntensity * (1.0f - progress); // Diminue progressivement
+
+            // Mouvement aléatoire
+            var randomX = (float)(_random.NextDouble() * 2.0f - 1.0f) * intensity;
+            var randomY = (float)(_random.NextDouble() * 2.0f - 1.0f) * intensity;
+            var randomZ = (float)(_random.NextDouble() * 2.0f - 1.0f) * intensity;
+
+            _shakeOffset = new Vector3(randomX, randomY, randomZ);
+            _camera.Position = _originalPosition + _shakeOffset;
         }
 
         /// <summary>
-        /// Arrête immédiatement le shake
+        /// Déclenche une secousse de caméra pour le tir
+        /// </summary>
+        public void ShakeFromShoot()
+        {
+            GD.Print("📷 Secousse de caméra pour le tir");
+            StartShake(0.2f, 0.1f);
+        }
+
+        /// <summary>
+        /// Déclenche une secousse de caméra pour l'impact
+        /// </summary>
+        public void ShakeFromImpact()
+        {
+            GD.Print("📷 Secousse de caméra pour l'impact");
+            StartShake(0.4f, 0.2f);
+        }
+
+        /// <summary>
+        /// Déclenche une secousse de caméra pour les dégâts
+        /// </summary>
+        public void ShakeFromDamage()
+        {
+            GD.Print("📷 Secousse de caméra pour les dégâts");
+            StartShake(0.6f, 0.3f);
+        }
+
+        /// <summary>
+        /// Déclenche une secousse de caméra personnalisée
+        /// </summary>
+        public void ShakeFromImpact(float impactForce)
+        {
+            GD.Print($"📷 Secousse de caméra personnalisée: {impactForce}");
+            var intensity = Mathf.Clamp(impactForce * 0.1f, 0.1f, 1.0f);
+            var duration = Mathf.Clamp(impactForce * 0.05f, 0.05f, 0.5f);
+            StartShake(intensity, duration);
+        }
+
+        /// <summary>
+        /// Démarre une secousse de caméra
+        /// </summary>
+        private void StartShake(float intensity, float duration)
+        {
+            if (_camera == null) return;
+
+            if (!_isShaking)
+            {
+                _originalPosition = _camera.Position;
+            }
+
+            ShakeIntensity = intensity;
+            ShakeDuration = duration;
+            _isShaking = true;
+            _shakeTime = 0.0f;
+        }
+
+        /// <summary>
+        /// Arrête la secousse de caméra
         /// </summary>
         public void StopShake()
         {
+            _isShaking = false;
+            _shakeTime = 0.0f;
+            
             if (_camera != null)
             {
                 _camera.Position = _originalPosition;
             }
+        }
+
+        /// <summary>
+        /// Définit la caméra cible
+        /// </summary>
+        public void SetCamera(Camera3D camera)
+        {
+            _camera = camera;
+            if (_camera != null)
+            {
+                _originalPosition = _camera.Position;
+            }
+        }
+
+        /// <summary>
+        /// Nettoie les ressources
+        /// </summary>
+        public override void _ExitTree()
+        {
+            GD.Print("🧹 Nettoyage du gestionnaire de secousse de caméra...");
             
-            _isShaking = false;
-            _currentIntensity = 0;
-            _currentDuration = 0;
-        }
-
-        /// <summary>
-        /// Vérifie si un shake est en cours
-        /// </summary>
-        public bool IsShaking()
-        {
-            return _isShaking;
-        }
-
-        /// <summary>
-        /// Obtient l'intensité actuelle du shake
-        /// </summary>
-        public float GetCurrentIntensity()
-        {
-            return _currentIntensity;
+            _camera = null;
         }
     }
 }
