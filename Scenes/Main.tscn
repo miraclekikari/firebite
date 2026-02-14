@@ -1,0 +1,153 @@
+[gd_scene load_steps=4 format=3 uid="uid://bvxn8xq7qk3r"]
+
+[sub_resource type="GDScript" id="GDScript_1"]
+script/source="extends Main
+"
+[sub_resource type="Environment" id="Environment_1"]
+background_mode = 2
+background_color = Color(0.02, 0.02, 0.05, 1)
+ambient_light_color = Color(0.5, 0.5, 0.5, 1)
+volumetric_fog_enabled = true
+volumetric_fog_density = 0.01
+volumetric_fog_albedo = Color(0, 0.8, 1, 0.3)
+volumetric_fog_emission = 0.2
+volumetric_fog_anisotropy = 0.2
+fog_enabled = true
+fog_light_color = Color(0, 0.8, 1, 1)
+fog_density = 0.002
+fog_aerial_perspective = 0.1
+ssao_enabled = true
+ssao_quality = 3
+ssao_blur = 3
+ssao_edge_sharpness = 4.0
+glow_enabled = true
+glow_intensity = 1.0
+glow_strength = 1.0
+glow_bloom_intensity = 0.5
+glow_blend_mode = 2
+glow_hdr_threshold = 1.0
+glow_hdr_scale = 2.0
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_1"]
+albedo_color = Color(0.15, 0.15, 0.25, 1)
+metallic = 0.9
+roughness = 0.1
+uv1_scale = Vector3(50, 50, 1)
+[sub_resource type="BoxMesh" id="BoxMesh_1"]
+material = SubResource("StandardMaterial3D_1")
+size = Vector3(100, 100, 1)
+[sub_resource type="SphereMesh" id="SphereMesh_1"]
+radius = 1.0
+height = 2.0
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_2"]
+albedo_color = Color(0.8, 0.2, 0.2, 1)
+metallic = 0.3
+roughness = 0.7
+[sub_resource type="CapsuleShape3D" id="CapsuleShape3D_1"]
+height = 2.0
+radius = 0.5
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_1"]
+shader = ExtResource("Shader_1")
+shader_parameter/glow_color = Vector4(0, 0.8, 1, 1)
+shader_parameter/glow_intensity = 2.5
+shader_parameter/pulse_speed = 1.0
+shader_parameter/pulse_amount = 0.4
+[sub_resource type="CylinderMesh" id="CylinderMesh_1"]
+material = SubResource("ShaderMaterial_1")
+height = 20.0
+top_radius = 2.0
+bottom_radius = 2.0
+[sub_resource type="OmniLight3D" id="OmniLight3D_1"]
+light_color = Color(0, 0.8, 1, 1)
+light_energy = 4.0
+light_indirect_energy = 0.5
+shadow_enabled = true
+light_size = 2.0
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_3"]
+albedo_color = Color(0.1, 0.1, 0.15, 1)
+metallic = 0.7
+roughness = 0.3
+[sub_resource type="BoxMesh" id="BoxMesh_2"]
+material = SubResource("StandardMaterial3D_3")
+size = Vector3(12, 12, 20)
+[sub_resource type="BoxMesh" id="BoxMesh_3"]
+material = SubResource("StandardMaterial3D_3")
+size = Vector3(8, 8, 25)
+[sub_resource type="DirectionalLight3D" id="DirectionalLight3D_1"]
+light_color = Color(0.9, 0.95, 1, 1)
+light_energy = 0.2
+shadow_enabled = true
+shadow_bias = 0.5
+
+[node name="Main" type="Node3D" parent="."]
+script = ExtResource("GDScript_1")
+unique_name_in_owner = true
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="Main."]
+environment = SubResource("Environment_1")
+
+[node name="MetallicFloor" type="CSGBox3D" parent="Main."]
+size = Vector3(100, 100, 1)
+position = Vector3(0, 0, -0.5)
+material = SubResource("StandardMaterial3D_1")
+
+[node name="Player" type="CharacterBody3D" parent="Main."]
+position = Vector3(0, 0, 2)
+unique_name_in_owner = true
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Main/Player"]
+shape = SubResource("CapsuleShape3D_1")
+position = Vector3(0, 0, 1)
+unique_name_in_owner = true
+
+[node name="Camera3D" type="Camera3D" parent="Main/Player"]
+position = Vector3(0, 1.6, 0)
+unique_name_in_owner = true
+
+[node name="StatsManager" type="Node" parent="Main/Player"]
+unique_name_in_owner = true
+
+[node name="WeaponManager" type="Node" parent="Main/Player"]
+unique_name_in_owner = true
+
+[node name="CameraShake" type="Node" parent="Main/Player"]
+unique_name_in_owner = true
+
+[node name="ImpactEffects" type="Node3D" parent="Main/Player"]
+unique_name_in_owner = true
+
+[node name="UI" type="Control" parent="Main."]
+unique_name_in_owner = true
+
+[node name="DirectionalLight3D" type="DirectionalLight3D" parent="Main."]
+rotation = Vector3(-45, 45, 0)
+light_color = Color(0.9, 0.95, 1, 1)
+light_energy = 0.2
+shadow_enabled = true
+shadow_bias = 0.5
+
+[node name="TestManager" type="Node" parent="Main."]
+unique_name_in_owner = true
+
+[node name="NeonPillar_0" type="CSGCylinder3D" parent="Main."]
+position = Vector3(25, 0, 10)
+material = SubResource("ShaderMaterial_1")
+height = 20.0
+top_radius = 2.0
+bottom_radius = 2.0
+
+[node name="PillarLight_0" type="OmniLight3D" parent="Main."]
+position = Vector3(25, 0, 11)
+light_color = Color(0, 0.8, 1, 1)
+light_energy = 4.0
+shadow_enabled = true
+light_size = 2.0
+
+[node name="Building_0" type="CSGBox3D" parent="Main."]
+position = Vector3(-30, -30, 10)
+size = Vector3(12, 12, 20)
+material = SubResource("StandardMaterial3D_3")
+
+[node name="Tower_0" type="CSGBox3D" parent="Main."]
+position = Vector3(-30, -25, 12.5)
+size = Vector3(8, 8, 25)
+material = SubResource("StandardMaterial3D_3")

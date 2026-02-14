@@ -139,7 +139,7 @@ namespace Firebyte
             processMaterial.ScaleMin = 0.1f;
             processMaterial.ScaleMax = 0.3f;
             processMaterial.Color = _rareColor;
-            processMaterial.Emission = Color.White;
+            processMaterial.Emission = Colors.White;
             processMaterial.EmissionEnergy = 2.0f;
 
             _deathParticles.ProcessMaterial = processMaterial;

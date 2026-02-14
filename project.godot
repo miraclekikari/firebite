@@ -18,7 +18,7 @@ config/name="Firebyte - Cyberpunk FPS"
 config/description="Un FPS 3D cyberpunk réaliste développé en C# avec Godot"
 config/version="1.0.0"
 run/main_scene="res://Scenes/Main.tscn"
-config/features=PackedStringArray("4.6", "Forward Plus")
+config/features=PackedStringArray("4.6", "C#", "Forward Plus")
 config/icon="res://icon.svg"
 
 [csharp]
