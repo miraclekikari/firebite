@@ -1,0 +1,227 @@
+{
+	"Type": "Map",
+	"Version": 1,
+	"Properties": {
+		"MapName": "CyberpunkLevel",
+		"WorldType": "World",
+		"bIsLevelInstance": false,
+		"WorldSettings": {
+			"DefaultGameMode": "/Game/Firebyte/Blueprints/GameModes/FBGameMode.FBGameMode_C",
+			"DefaultPawnClass": "/Game/Firebyte/Blueprints/Characters/FBCharacter.FBCharacter_C"
+		}
+	},
+	"Actors": [
+		{
+			"Type": "PlayerStart",
+			"Name": "PlayerStart_0",
+			"Transform": {
+				"Translation": [0, 0, 200],
+				"Rotation": [0, 0, 0],
+				"Scale": [1, 1, 1]
+			}
+		},
+		{
+			"Type": "SkySphere",
+			"Name": "SkySphere_0",
+			"Transform": {
+				"Translation": [0, 0, 0],
+				"Rotation": [0, 0, 0],
+				"Scale": [10000, 10000, 10000]
+			},
+			"Properties": {
+				"Material": "/Game/Firebyte/Materials/Sky/CyberpunkSky.CyberpunkSky"
+			}
+		},
+		{
+			"Type": "DirectionalLight",
+			"Name": "DirectionalLight_0",
+			"Transform": {
+				"Translation": [0, 0, 1000],
+				"Rotation": [-45, 45, 0],
+				"Scale": [1, 1, 1]
+			},
+			"Properties": {
+				"Intensity": 10.0,
+				"LightColor": [150, 150, 255, 255],
+				"bCastShadows": true,
+				"CastShadowsDistance": 5000
+			}
+		},
+		{
+			"Type": "PostProcessVolume",
+			"Name": "PostProcessVolume_0",
+			"Transform": {
+				"Translation": [0, 0, 0],
+				"Rotation": [0, 0, 0],
+				"Scale": [5000, 5000, 1000]
+			},
+			"Properties": {
+				"bEnabled": true,
+				"bUnbound": true,
+				"Settings": {
+					"ColorGrading": {
+						"HighlightsGain": [1.1, 1.0, 0.9],
+						"MidtonesGain": [1.0, 1.0, 1.0],
+						"ShadowsGain": [0.8, 0.9, 1.2]
+					},
+					"Bloom": {
+						"Intensity": 0.5,
+						"Threshold": 3.0
+					},
+					"Vignette": {
+						"Intensity": 0.3
+					},
+					"FilmGrain": {
+						"Intensity": 0.1
+					}
+				}
+			}
+		},
+		{
+			"Type": "StaticMeshActor",
+			"Name": "Floor_0",
+			"Transform": {
+				"Translation": [0, 0, 0],
+				"Rotation": [0, 0, 0],
+				"Scale": [50, 50, 1]
+			},
+			"Properties": {
+				"StaticMesh": "/Engine/BasicShapes/Cube.Cube",
+				"Material": "/Game/Firebyte/Materials/Floor/CyberpunkFloor.CyberpunkFloor",
+				"bBlockNavigation": false
+			}
+		},
+		{
+			"Type": "StaticMeshActor",
+			"Name": "Building_0",
+			"Transform": {
+				"Translation": [1000, 0, 500],
+				"Rotation": [0, 0, 0],
+				"Scale": [2, 2, 10]
+			},
+			"Properties": {
+				"StaticMesh": "/Engine/BasicShapes/Cube.Cube",
+				"Material": "/Game/Firebyte/Materials/Buildings/CyberpunkBuilding.CyberpunkBuilding"
+			}
+		},
+		{
+			"Type": "StaticMeshActor",
+			"Name": "Building_1",
+			"Transform": {
+				"Translation": [-1000, 1000, 750],
+				"Rotation": [0, 0, 45],
+				"Scale": [1.5, 1.5, 15]
+			},
+			"Properties": {
+				"StaticMesh": "/Engine/BasicShapes/Cube.Cube",
+				"Material": "/Game/Firebyte/Materials/Buildings/CyberpunkBuilding.CyberpunkBuilding"
+			}
+		},
+		{
+			"Type": "StaticMeshActor",
+			"Name": "Building_2",
+			"Transform": {
+				"Translation": [0, -1500, 600],
+				"Rotation": [0, 0, 30],
+				"Scale": [2.5, 2.5, 12]
+			},
+			"Properties": {
+				"StaticMesh": "/Engine/BasicShapes/Cube.Cube",
+				"Material": "/Game/Firebyte/Materials/Buildings/CyberpunkBuilding.CyberpunkBuilding"
+			}
+		},
+		{
+			"Type": "PointLight",
+			"Name": "NeonLight_0",
+			"Transform": {
+				"Translation": [500, 500, 300],
+				"Rotation": [0, 0, 0],
+				"Scale": [1, 1, 1]
+			},
+			"Properties": {
+				"Intensity": 5000,
+				"LightColor": [255, 0, 255, 255],
+				"AttenuationRadius": 1000,
+				"bUseInverseSquaredFalloff": false
+			}
+		},
+		{
+			"Type": "PointLight",
+			"Name": "NeonLight_1",
+			"Transform": {
+				"Translation": [-500, -500, 300],
+				"Rotation": [0, 0, 0],
+				"Scale": [1, 1, 1]
+			},
+			"Properties": {
+				"Intensity": 5000,
+				"LightColor": [0, 255, 255, 255],
+				"AttenuationRadius": 1000,
+				"bUseInverseSquaredFalloff": false
+			}
+		},
+		{
+			"Type": "PointLight",
+			"Name": "NeonLight_2",
+			"Transform": {
+				"Translation": [1500, 0, 400],
+				"Rotation": [0, 0, 0],
+				"Scale": [1, 1, 1]
+			},
+			"Properties": {
+				"Intensity": 3000,
+				"LightColor": [255, 100, 0, 255],
+				"AttenuationRadius": 800,
+				"bUseInverseSquaredFalloff": false
+			}
+		},
+		{
+			"Type": "ExponentialHeightFog",
+			"Name": "ExponentialHeightFog_0",
+			"Transform": {
+				"Translation": [0, 0, 0],
+				"Rotation": [0, 0, 0],
+				"Scale": [1, 1, 1]
+			},
+			"Properties": {
+				"FogDensity": 0.001,
+				"FogHeightFalloff": 0.2,
+				"FogInscatteringColor": [100, 150, 255, 255],
+				"FogMaxOpacity": 0.8
+			}
+		},
+		{
+			"Type": "NiagaraSystem",
+			"Name": "RainEffect_0",
+			"Transform": {
+				"Translation": [0, 0, 2000],
+				"Rotation": [0, 0, 0],
+				"Scale": [1, 1, 1]
+			},
+			"Properties": {
+				"System": "/Game/Firebyte/Effects/Weather/CyberpunkRain.CyberpunkRain",
+				"bAutoActivate": true
+			}
+		},
+		{
+			"Type": "AudioVolume",
+			"Name": "AmbientAudio_0",
+			"Transform": {
+				"Translation": [0, 0, 0],
+				"Rotation": [0, 0, 0],
+				"Scale": [5000, 5000, 2000]
+			},
+			"Properties": {
+				"bEnabled": true,
+				"InteriorVolume": 0.5,
+				"InteriorLPF": 8000,
+				"InteriorTime": 2.0,
+				"SoundClass": "/Game/Firebyte/Audio/Ambient/CyberpunkAmbient.CyberpunkAmbient"
+			}
+		}
+	],
+	"LevelInstance": {
+		"Actors": [],
+		"Layers": []
+	}
+}
