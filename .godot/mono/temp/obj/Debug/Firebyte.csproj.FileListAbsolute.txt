@@ -4,3 +4,10 @@ C:\Users\DELL\CascadeProjects\windsurf-project\.godot\mono\temp\obj\Debug\Fireby
 C:\Users\DELL\CascadeProjects\windsurf-project\.godot\mono\temp\obj\Debug\Firebyte.AssemblyInfo.cs
 C:\Users\DELL\CascadeProjects\windsurf-project\.godot\mono\temp\obj\Debug\Firebyte.csproj.CoreCompileInputs.cache
 C:\Users\DELL\CascadeProjects\windsurf-project\.godot\mono\temp\obj\Debug\Firebyte.sourcelink.json
+C:\Users\DELL\CascadeProjects\windsurf-project\.godot\mono\temp\bin\Debug\Firebyte.deps.json
+C:\Users\DELL\CascadeProjects\windsurf-project\.godot\mono\temp\bin\Debug\Firebyte.dll
+C:\Users\DELL\CascadeProjects\windsurf-project\.godot\mono\temp\bin\Debug\Firebyte.pdb
+C:\Users\DELL\CascadeProjects\windsurf-project\.godot\mono\temp\obj\Debug\Firebyte.dll
+C:\Users\DELL\CascadeProjects\windsurf-project\.godot\mono\temp\obj\Debug\refint\Firebyte.dll
+C:\Users\DELL\CascadeProjects\windsurf-project\.godot\mono\temp\obj\Debug\Firebyte.pdb
+C:\Users\DELL\CascadeProjects\windsurf-project\.godot\mono\temp\obj\Debug\ref\Firebyte.dll
