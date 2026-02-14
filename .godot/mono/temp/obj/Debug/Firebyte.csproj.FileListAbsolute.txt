@@ -1,0 +1,6 @@
+C:\Users\DELL\CascadeProjects\windsurf-project\.godot\mono\temp\obj\Debug\Firebyte.csproj.AssemblyReference.cache
+C:\Users\DELL\CascadeProjects\windsurf-project\.godot\mono\temp\obj\Debug\Firebyte.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\DELL\CascadeProjects\windsurf-project\.godot\mono\temp\obj\Debug\Firebyte.AssemblyInfoInputs.cache
+C:\Users\DELL\CascadeProjects\windsurf-project\.godot\mono\temp\obj\Debug\Firebyte.AssemblyInfo.cs
+C:\Users\DELL\CascadeProjects\windsurf-project\.godot\mono\temp\obj\Debug\Firebyte.csproj.CoreCompileInputs.cache
+C:\Users\DELL\CascadeProjects\windsurf-project\.godot\mono\temp\obj\Debug\Firebyte.sourcelink.json
